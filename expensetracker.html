@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .balance-card h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .balance-card p {
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4a5568;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        .expenses {
+            margin-top: 30px;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .expense-item .details {
+            flex-grow: 1;
+        }
+
+        .expense-item .amount {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+
+        .expense-item .category {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .delete-btn {
+            background: #feb2b2;
+            color: #c53030;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .expense-summary {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item h3 {
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .summary-item p {
+            color: #2d3748;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Expense Tracker</h1>
+        
+        <div class="balance-card">
+            <h2>Total Balance</h2>
+            <p id="balance">$0.00</p>
+        </div>
+
+        <div class="expense-summary">
+            <div class="summary-item">
+                <h3>Total Income</h3>
+                <p id="income">$0.00</p>
+            </div>
+            <div class="summary-item">
+                <h3>Total Expenses</h3>
+                <p id="expenses">$0.00</p>
+            </div>
+            <div class="summary-item">
+                <h3>This Month</h3>
+                <p id="monthly">$0.00</p>
+            </div>
+        </div>
+
+        <form id="expense-form">
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="description" required>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="amount" required step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select id="type" required>
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="category">
+                    <option value="food">Food</option>
+                    <option value="transport">Transport</option>
+                    <option value="utilities">Utilities</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="shopping">Shopping</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Add Transaction</button>
+        </form>
+
+        <div class="expenses" id="expense-list">
+            <!-- Expenses will be added here dynamically -->
+        </div>
+    </div>
+
+    <script>
+        class ExpenseTracker {
+            constructor() {
+                this.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                this.form = document.getElementById('expense-form');
+                this.expenseList = document.getElementById('expense-list');
+                
+                this.initializeEventListeners();
+                this.updateUI();
+            }
+
+            initializeEventListeners() {
+                this.form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTransaction();
+                });
+            }
+
+            addTransaction() {
+                const description = document.getElementById('description').value;
+                const amount = parseFloat(document.getElementById('amount').value);
+                const type = document.getElementById('type').value;
+                const category = document.getElementById('category').value;
+
+                const transaction = {
+                    id: Date.now(),
+                    description,
+                    amount,
+                    type,
+                    category,
+                    date: new Date()
+                };
+
+                this.transactions.push(transaction);
+                this.saveTransactions();
+                this.updateUI();
+                this.form.reset();
+            }
+
+            deleteTransaction(id) {
+                this.transactions = this.transactions.filter(transaction => transaction.id !== id);
+                this.saveTransactions();
+                this.updateUI();
+            }
+
+            saveTransactions() {
+                localStorage.setItem('transactions', JSON.stringify(this.transactions));
+            }
+
+            updateUI() {
+                this.updateBalance();
+                this.updateExpenseList();
+                this.updateSummary();
+            }
+
+            updateBalance() {
+                const balance = this.transactions.reduce((acc, transaction) => {
+                    return transaction.type === 'income' 
+                        ? acc + transaction.amount 
+                        : acc - transaction.amount;
+                }, 0);
+
+                document.getElementById('balance').textContent = this.formatCurrency(balance);
+            }
+
+            updateSummary() {
+                const income = this.transactions
+                    .filter(t => t.type === 'income')
+                    .reduce((acc, t) => acc + t.amount, 0);
+
+                const expenses = this.transactions
+                    .filter(t => t.type === 'expense')
+                    .reduce((acc, t) => acc + t.amount, 0);
+
+                const currentMonth = new Date().getMonth();
+                const monthlyExpenses = this.transactions
+                    .filter(t => new Date(t.date).getMonth() === currentMonth && t.type === 'expense')
+                    .reduce((acc, t) => acc + t.amount, 0);
+
+                document.getElementById('income').textContent = this.formatCurrency(income);
+                document.getElementById('expenses').textContent = this.formatCurrency(expenses);
+                document.getElementById('monthly').textContent = this.formatCurrency(monthlyExpenses);
+            }
+
+            updateExpenseList() {
+                this.expenseList.innerHTML = '';
+                
+                this.transactions
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .forEach(transaction => {
+                        const div = document.createElement('div');
+                        div.className = 'expense-item';
+                        
+                        div.innerHTML = `
+                            <div class="details">
+                                <h3>${transaction.description}</h3>
+                                <span class="category">${transaction.category}</span>
+                            </div>
+                            <span class="amount" style="color: ${transaction.type === 'income' ? '#38a169' : '#e53e3e'}">
+                                ${transaction.type === 'income' ? '+' : '-'}${this.formatCurrency(transaction.amount)}
+                            </span>
+                            <button class="delete-btn" onclick="expenseTracker.deleteTransaction(${transaction.id})">
+                                ×
+                            </button>
+                        `;
+                        
+                        this.expenseList.appendChild(div);
+                    });
+            }
+
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(amount);
+            }
+        }
+
+        const expenseTracker = new ExpenseTracker();
+    </script>
+</body>
+</html>
